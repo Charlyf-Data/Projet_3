@@ -1,0 +1,10 @@
+api.txt
+a_fairee.txt
+__pycache__
+test
+notebooks
+.pytest_cache
+.vscode
+db_utils
+image
+venv
