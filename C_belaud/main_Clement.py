@@ -43,11 +43,7 @@ def main1():
             query = st.text_input("Rechercher des restaurants")
             if st.form_submit_button("🔍 Lancer la recherche"):
                 with st.spinner("Recherche en cours..."):
-                    print("xxxxxxxx")
-                    print(query)
-                    print(st.session_state.location)
                     df = find_restaurants(query, st.session_state.location)
-                    print(df)
                     if df is not None and not df.empty:
                         st.session_state.df = df
                         st.session_state.restaurants = [
@@ -107,21 +103,19 @@ def main1():
                                     st.session_state.user_reviews[restaurant.place_id] = []
                                 st.session_state.user_reviews[restaurant.place_id].append(user_review)
                                 st.success("Votre avis a été ajouté !")
-                                print(st.session_state.user_reviews)
+                                
                         
                         # Affichage des avis utilisateurs
                         if restaurant.place_id in st.session_state.user_reviews and st.session_state.user_reviews[restaurant.place_id]:
                             st.markdown("**Avis des utilisateurs :**")
                             for ur in st.session_state.user_reviews[restaurant.place_id]:
                                 st.write(user_review)
-                                print(st.session_state.user_reviews)
+                               
      
-            print(st.session_state.user_reviews)
             with cols[1]:
                 # Carte interactive affichant la position et les résultats
                 m = folium.Map(
-                    location=(st.session_state.location.latitude, st.session_state.location.longitude)
-                        if st.session_state.location else DEFAULT_LOCATION,
+                    location=(st.session_state.df["location.latitude"].mean(), st.session_state.df["location.longitude"].mean()),
                     zoom_start=14
                 )
                 if st.session_state.location:
@@ -132,6 +126,7 @@ def main1():
                     ).add_to(m)
                 cluster = MarkerCluster().add_to(m)
                 for r in filtered:
+                    print(r)
                     folium.Marker(
                         [r.latitude, r.longitude],
                         popup=f"<b>{r.name}</b><br>Note: {r.rating}/5",
@@ -207,6 +202,7 @@ def main1():
                     if st.session_state.selected_route:
                         user_loc = (st.session_state.location.latitude, st.session_state.location.longitude)
                         resto_loc = (st.session_state.selected_route.latitude, st.session_state.selected_route.longitude)
+                        print(resto_loc)
                         geometry, distance, duration = get_route(user_loc, resto_loc)
                         if geometry:
                             m_route = folium.Map(

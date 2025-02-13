@@ -12,6 +12,7 @@ def main():
     elif st.session_state["etape"] == 2:
          main_app()
     elif st.session_state["etape"] == 3:
+        st.set_page_config(layout="wide")
         main_Clement.main1()
 
         

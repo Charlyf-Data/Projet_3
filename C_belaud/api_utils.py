@@ -48,7 +48,6 @@ def find_restaurants(query: str, location: LocationData = None) -> Optional[pd.D
     response.raise_for_status()
 
     places = response.json().get('places', [])
-    print(response.json())
     if places:
         df = pd.json_normalize(places)
         df.rename(columns={"id": "placeId"}, inplace=True)
