@@ -43,7 +43,11 @@ def main1():
             query = st.text_input("Rechercher des restaurants")
             if st.form_submit_button("🔍 Lancer la recherche"):
                 with st.spinner("Recherche en cours..."):
+                    print("xxxxxxxx")
+                    print(query)
+                    print(st.session_state.location)
                     df = find_restaurants(query, st.session_state.location)
+                    print(df)
                     if df is not None and not df.empty:
                         st.session_state.df = df
                         st.session_state.restaurants = [

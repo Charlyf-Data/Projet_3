@@ -8,3 +8,6 @@ notebooks
 db_utils
 image
 venv
+.env
+todo.txt
+test.ipynb

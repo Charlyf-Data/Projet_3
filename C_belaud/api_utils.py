@@ -38,29 +38,27 @@ def find_restaurants(query: str, location: LocationData = None) -> Optional[pd.D
         "X-Goog-FieldMask": FIELD_MASK
     }
     data = {"textQuery": query, "languageCode": "fr"}
-    if location:
-        data["locationBias"] = {
-            "circle": {
-                "center": {"latitude": location.latitude, "longitude": location.longitude},
-                "radius": 5000.0
-            }
+    data["locationBias"] = {
+        "circle": {
+            "radius": 5000.0
         }
-    try:
-        response = requests.post(FILTERED_URL, headers=headers, json=data, timeout=10)
-        response.raise_for_status()
-        print(response)
-        places = response.json().get('places', [])
-        print(places)
-        if places:
-            df = pd.json_normalize(places)
-            df.rename(columns={"id": "placeId"}, inplace=True)
-            df['rating']= df['rating'].fillna(0)
-            df['userRatingCount']= df['userRatingCount'].fillna(0)
-            return df[['placeId', 'displayName.text', 'formattedAddress',
-                       'location.latitude', 'location.longitude', 'rating',
-                       'userRatingCount', 'primaryType']]
-    except Exception as e:
-        st.error(f"Erreur API: {str(e)}")
+    }
+    
+    response = requests.post("https://places.googleapis.com/v1/places:searchText", headers=headers, json=data, timeout=10)
+    response.raise_for_status()
+
+    places = response.json().get('places', [])
+    print(response.json())
+    if places:
+        df = pd.json_normalize(places)
+        df.rename(columns={"id": "placeId"}, inplace=True)
+        df['rating']= df['rating'].fillna(0)
+        df['userRatingCount']= df['userRatingCount'].fillna(0)
+        return df[['placeId', 'displayName.text', 'formattedAddress',
+                    'location.latitude', 'location.longitude', 'rating',
+                    'userRatingCount', 'primaryType']]
+
+
     return None
 
 def create_restaurant(row: pd.Series) -> Optional[Restaurant]:
