@@ -91,21 +91,14 @@ class Sql_manager:
         
     def find_place(self, adresse):
          with self.engine.connect() as conn:
-            query = text("SELECT id, country, city, adresse, nom   FROM lieux WHERE adresse = :adresse")
+            query = text("SELECT id, country, city, adresse, nom   FROM lieux WHERE adresse = :adresse AND city = :city")
             result = conn.execute(query, {"adresse": adresse})
             rows = result.fetchall()
             df = pd.DataFrame(rows, columns=result.keys())
-            if df.empty:
-                print("Aucun résultat trouvé dans le DataFrame")
-                return None 
             adresse = df["adresse"].iloc[0]
             nom = df["nom"].iloc[0]
             id_lieu = df["id"].iloc[0]
             return id_lieu, adresse, nom
-        
-    
-        
-        
         
     def insert_query(self, requetes:pd.Series) -> Optional[dict]:
             query = text(f""" INSERT INTO requetes ( id_user, id_lieux, ville, sujet, date_requete)
@@ -125,8 +118,10 @@ class Sql_manager:
                 print("✅ Première ligne insérée avec succès !")
             except Exception as e:
                 print(f"❌ Erreur lors de l'insertion en base de données : {e}")
-                
-    
+        
+        
+        
+        
     def insert_avis(self, avis:pd.Series) -> Optional[dict]:
         query = text(f""" INSERT INTO avis ( user_id, lieu_id, note, commentaire, date_avis)
             VALUES (:user_id, :lieu_id, :note, :commentaire, :date_avis)
@@ -145,6 +140,4 @@ class Sql_manager:
             print("✅ Première ligne insérée avec succès !")
         except Exception as e:
             print(f"❌ Erreur lors de l'insertion en base de données : {e}")
-        
-        
         

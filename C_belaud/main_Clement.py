@@ -7,6 +7,7 @@ import plotly.express as px
 import folium
 from folium.plugins import MarkerCluster
 from streamlit_folium import st_folium
+from sqlmanager import Sql_manager
 
 from C_belaud.config import DEFAULT_LOCATION, COLOR_SCHEME
 from C_belaud.services import LocationService, RestaurantService
@@ -14,12 +15,7 @@ from C_belaud.ui import RestaurantUI
 from C_belaud.api_utils import find_restaurants, create_restaurant, get_route, generate_wordcloud
 
 def main1():
-    # Initialisation de l'état de session
-    # for key in ['restaurants', 'df', 'favorites', 'search_history', 'reviews', 'selected_route']:
-    #     if key not in st.session_state:
-    #         st.session_state[key] = [] if key != 'df' else pd.DataFrame()
-    # if "user_reviews" not in st.session_state:
-    #     st.session_state.user_reviews = {}
+    sql = Sql_manager()
 
     loc_service = LocationService()
 
@@ -93,17 +89,70 @@ def main1():
                                     st.session_state.favorites.append(restaurant)
                                     st.success("Ajouté aux favoris!")
                                     st.session_state.user_reviews = []
+                                    lieu = pd.Series({
+                                        "country": "France",
+                                        "city": "Toulouse",
+                                        "displayName.text": restaurant.name,
+                                        "formattedAddress": restaurant.address,
+                                        "location.longitude": restaurant.longitude,
+                                        "location.latitude": restaurant.latitude,
+                                        "primaryType": restaurant.primary_type
+                                    })
+                                    sql.insert_lieu(lieu)
+                                    id_lieux = sql.find_place(restaurant.address)
+                                    test_requetes = pd.Series({
+                                        "id_user_con": int(st.session_state["id_user_con"]),
+                                        "id_lieux": int(id_lieux[0]),
+                                        "ville": "Toulouse",
+                                        "sujet": str(st.session_state["history"]),
+                                        "date_requete": datetime.now()
+                                    })
+                                    
+                                    sql.insert_query(test_requetes)
+                                    
+                                    
+                                    
                         
                         st.markdown("---")
+                                                
+                        if "user_reviews" not in st.session_state or not isinstance(st.session_state.user_reviews, dict):
+                            st.session_state.user_reviews = {}  
+
                         # Saisie d'avis utilisateur
                         user_review = st.text_area("Votre avis", key=f"review_input_{restaurant.place_id}", height=100)
+
                         if st.button("Ajouter votre avis", key=f"add_review_{restaurant.place_id}"):
                             if user_review.strip():
                                 if restaurant.place_id not in st.session_state.user_reviews:
-                                    st.session_state.user_reviews[restaurant.place_id] = []
+                                    st.session_state.user_reviews[restaurant.place_id] = [] 
                                 st.session_state.user_reviews[restaurant.place_id].append(user_review)
-                                st.success("Votre avis a été ajouté !")
-                                
+                                st.success("Votre avis a ete ajoute !")
+
+                                print(user_review)
+
+                                # Insertion dans la base SQL
+                                lieu = pd.Series({
+                                    "country": "France",
+                                    "city": "Toulouse",
+                                    "displayName.text": restaurant.name,
+                                    "formattedAddress": restaurant.address,
+                                    "location.longitude": restaurant.longitude,
+                                    "location.latitude": restaurant.latitude,
+                                    "primaryType": restaurant.primary_type
+                                })
+                                sql.insert_lieu(lieu)
+
+                                id_lieux = sql.find_place(restaurant.address)
+
+                                avis = pd.Series({
+                                    "id_user_con": int(st.session_state["id_user_con"]),
+                                    "id_lieux": int(id_lieux[0]),
+                                    "note": 4.5,
+                                    "avis": user_review,
+                                    "date_requete": datetime.now()
+                                })
+                                sql.insert_avis(avis)
+
                         
                         # Affichage des avis utilisateurs
                         if restaurant.place_id in st.session_state.user_reviews and st.session_state.user_reviews[restaurant.place_id]:
@@ -126,7 +175,6 @@ def main1():
                     ).add_to(m)
                 cluster = MarkerCluster().add_to(m)
                 for r in filtered:
-                    print(r)
                     folium.Marker(
                         [r.latitude, r.longitude],
                         popup=f"<b>{r.name}</b><br>Note: {r.rating}/5",
@@ -202,7 +250,6 @@ def main1():
                     if st.session_state.selected_route:
                         user_loc = (st.session_state.location.latitude, st.session_state.location.longitude)
                         resto_loc = (st.session_state.selected_route.latitude, st.session_state.selected_route.longitude)
-                        print(resto_loc)
                         geometry, distance, duration = get_route(user_loc, resto_loc)
                         if geometry:
                             m_route = folium.Map(
@@ -221,8 +268,10 @@ def main1():
                         st.info("Sélectionnez un restaurant pour voir l'itinéraire détaillé.")
 
     elif tab == "👤 Profil":
-        st.title("👤 Votre Profil")
+        st.title(f"👤 {st.session_state['username_user']}")
         st.markdown("## Tableau de Bord Personnel")
+        st.write(f"Rôle : {st.session_state['role_user']}")
+        st.write(f"ID : {st.session_state['id_user_con']}")
         
         # Calcul des métriques
         reviews_count = len(st.session_state.reviews) if "reviews" in st.session_state else 0

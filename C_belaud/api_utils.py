@@ -51,14 +51,44 @@ def find_restaurants(query: str, location: LocationData = None) -> Optional[pd.D
     if places:
         df = pd.json_normalize(places)
         df.rename(columns={"id": "placeId"}, inplace=True)
-        df['rating']= df['rating'].fillna(0)
-        df['userRatingCount']= df['userRatingCount'].fillna(0)
-        return df[['placeId', 'displayName.text', 'formattedAddress',
-                    'location.latitude', 'location.longitude', 'rating',
-                    'userRatingCount', 'primaryType']]
+
+        # Vérifie si df est vide après normalisation
+        if df.empty:
+            st.error("⚠ Aucune donnée récupérée après normalisation.")
+            return pd.DataFrame(columns=['placeId', 'displayName.text', 'formattedAddress',
+                                        'location.latitude', 'location.longitude', 'rating',
+                                        'userRatingCount', 'primaryType'])
+
+        # Ajoute rating si absent
+        if 'rating' not in df.columns:
+            df['rating'] = 0
+
+        # Vérifie et remplit userRatingCount
+        if 'userRatingCount' in df.columns:
+            df['userRatingCount'] = df['userRatingCount'].fillna(0)
+        else:
+            df['userRatingCount'] = 0
+
+        # Ajoute les colonnes manquantes
+        required_columns = ['placeId', 'displayName.text', 'formattedAddress',
+                            'location.latitude', 'location.longitude', 'rating',
+                            'userRatingCount', 'primaryType']
+        
+        for col in required_columns:
+            if col not in df.columns:
+                df[col] = None  # Remplit les colonnes manquantes avec None
+
+        print("Colonnes du DataFrame avant retour :", df.columns)  # Debug
+
+        return df[required_columns]
+    else:
+        st.error("⚠ `places` est vide. Aucune donnée récupérée.")
+        return pd.DataFrame(columns=['placeId', 'displayName.text', 'formattedAddress',
+                                    'location.latitude', 'location.longitude', 'rating',
+                                    'userRatingCount', 'primaryType'])
 
 
-    return None
+    
 
 def create_restaurant(row: pd.Series) -> Optional[Restaurant]:
     try:
