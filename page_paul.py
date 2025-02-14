@@ -130,5 +130,3 @@ def main_app():
         st.session_state["message_ready"] = False
         st.session_state["temp_input"] = ""
         st.rerun()
-
-    st_utils.page_clement()
