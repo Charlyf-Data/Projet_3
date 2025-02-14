@@ -4,9 +4,23 @@ from sqlmanager import Sql_manager
 from gepetto.geppetto import Geppetto
 from st_utils import st_utils  
 import pandas as pd 
+import re
+import time
 
 
 
+def extraire_demande_utilisateur(response):
+    """
+    Cette fonction extrait le contenu entre crochets dans la chaîne 'response'.
+    
+    :param response: Chaîne de caractères potentiellement contenant du contenu entre crochets.
+    :return: Le contenu entre crochets ou None si aucun crochet n'est détecté.
+    """
+    match = re.search(r'\[(.*?)\]', response)
+    if match:
+        return match.group(1)  # Retourne le contenu dans les crochets  
+    else:
+        return None  # Retourne None si aucun crochet n'est détecté
 
 def main_app():
     st.markdown("""
@@ -68,7 +82,13 @@ def main_app():
         if user_input:
             with st.spinner("Polo est en train de répondre..."):
                 response = st.session_state.geppetto.talk(user_input)
+                demande_utilisateur = extraire_demande_utilisateur(response)
                 add_to_history(user_input, response)
+                if demande_utilisateur is not None:
+                    st.session_state['search_user'] = demande_utilisateur
+                    st.session_state['etape'] = 3
+                    time.sleep(2)
+                    st.rerun()
             st.session_state["message_ready"] = True  # Marquer que le message a été traité
             st.session_state["temp_input"] = ""  # Utilisation d'une variable temporaire
             st.rerun()
