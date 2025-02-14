@@ -15,7 +15,7 @@ from C_belaud.config import DEFAULT_LOCATION, COLOR_SCHEME
 from C_belaud.services import LocationService, RestaurantService
 from C_belaud.ui import RestaurantUI
 from C_belaud.api_utils import find_restaurants, create_restaurant, get_route, generate_wordcloud
-
+from init_co.initialisation import reset_state
 
 sql = Sql_manager()
 # Charger le modèle spaCy pour le français
@@ -38,43 +38,30 @@ def clean_text_spacy(text):
 PLOTLY_COLOR_SCHEME = "Reds"
 
 def main1():
-    # Initialisation de st.session_state
-    for key in ['restaurants', 'df', 'favorites', 'search_history', 'reviews', 'selected_route']:
-        if key not in st.session_state:
-            st.session_state[key] = [] if key != 'df' else pd.DataFrame()
-    if "user_reviews" not in st.session_state:
-        st.session_state.user_reviews = {}
-    if "go_to_itinerary" not in st.session_state:
-        st.session_state.go_to_itinerary = False
-
     loc_service = LocationService()
-    tab = st.radio("Navigation", ["🔍 Recherche", "👤 Profil"], horizontal=True, index=1)
+    tab = st.radio("Navigation", ["🔍 Recherche", "👤 Profil"], horizontal=True, index=0)
 
     # ------------------------- Section Recherche -------------------------
     if tab == "🔍 Recherche":
-        st.title("🔍 Recherche de Restaurants")
+        st.title(f"🔍 Recherche conseillée par POLO : {st.session_state.search_user}")
+        if st.button("Retourner voir Polo"):
+            reset_state()
+            st.session_state.etape = 2
+            st.rerun()
         
-        # Formulaire de recherche
-        with st.form("search_form"):
-            query = st.text_input("Rechercher des restaurants", value=st.session_state.get('search_user', ''))
-
-            # Créer le bouton de soumission
-            submit_button = st.form_submit_button("🔍 Lancer la recherche")
-
-            # Si le bouton est cliqué ou si query n'est pas vide  
-            if query:
-                with st.spinner("Recherche en cours..."):
-                    df = find_restaurants(query, st.session_state.location)
-                    if df is not None and not df.empty:
-                        st.session_state.df = df  
-                        st.session_state.restaurants = [
-                            r for r in [create_restaurant(row) for _, row in df.iterrows()] 
-                            if r is not None ]
-                        st.session_state.search_history.append(time.time())
-                        st.success(f"{len(st.session_state.restaurants)} résultats trouvés!")
-                    else:
-                        st.session_state.restaurants = []
-                        st.warning("Aucun résultat trouvé")
+        if len(st.session_state.restaurants) == 0:
+            with st.spinner("Recherche en cours..."):
+                df = find_restaurants(st.session_state["search_user"], st.session_state.location)
+                if df is not None and not df.empty:
+                    st.session_state.df = df  
+                    st.session_state.restaurants = [
+                        r for r in [create_restaurant(row) for _, row in df.iterrows()] 
+                        if r is not None ]
+                    st.session_state.search_history.append(time.time())
+                    st.success(f"{len(st.session_state.restaurants)} résultats trouvés!")
+                else:
+                    st.session_state.restaurants = []
+                    st.warning("Aucun résultat trouvé")
         
                         
         if st.session_state.restaurants:
@@ -183,33 +170,34 @@ def main1():
                                 st.write(ur)
      
             with cols[1]:
-                if st.session_state.get("go_to_itinerary", False) and st.session_state.selected_route:
-                    st.subheader("Itinéraire détaillé")
-                    # Vérifier si selected_route est une liste et extraire le premier élément si nécessaire
-                    selected = st.session_state.selected_route[0] if isinstance(st.session_state.selected_route, list) else st.session_state.selected_route
-                    user_loc = (st.session_state.location.latitude, st.session_state.location.longitude)
-                    resto_loc = (selected.latitude, selected.longitude)
-                    geometry, distance, duration = get_route(user_loc, resto_loc)
-                    if geometry:
-                        m_route = folium.Map(
-                            location=[(user_loc[0] + resto_loc[0]) / 2, (user_loc[1] + resto_loc[1]) / 2],
-                            zoom_start=13
-                        )
-                        folium.Marker(user_loc, popup="Vous", icon=folium.Icon(color="blue")).add_to(m_route)
-                        folium.Marker(resto_loc, popup=selected.name, icon=folium.Icon(color="red")).add_to(m_route)
-                        folium.GeoJson(geometry, style_function=lambda x: {'color': 'green'}).add_to(m_route)
-                        st_folium(m_route, width=700)
-                        if distance and duration:
-                            st.write(f"**Distance:** {distance/1000:.2f} km | **Durée:** {duration/60:.1f} min")
-                    else:
-                        st.info("Aucun itinéraire trouvé.")
-                    if st.button("Retour aux visualisations"):
-                        st.session_state.go_to_itinerary = False
-                        st.rerun()
-                else:
+                # if st.session_state.get("go_to_itinerary", False) and st.session_state.selected_route:
+                #     st.subheader("Itinéraire détaillé")
+                #     # Vérifier si selected_route est une liste et extraire le premier élément si nécessaire
+                #     selected = st.session_state.selected_route[0] if isinstance(st.session_state.selected_route, list) else st.session_state.selected_route
+                #     user_loc = (st.session_state.location.latitude, st.session_state.location.longitude)
+                #     resto_loc = (selected.latitude, selected.longitude)
+                #     geometry, distance, duration = get_route(user_loc, resto_loc)
+                #     if geometry:
+                #         m_route = folium.Map(
+                #             location=[(user_loc[0] + resto_loc[0]) / 2, (user_loc[1] + resto_loc[1]) / 2],
+                #             zoom_start=13
+                #         )
+                #         folium.Marker(user_loc, popup="Vous", icon=folium.Icon(color="blue")).add_to(m_route)
+                #         folium.Marker(resto_loc, popup=selected.name, icon=folium.Icon(color="red")).add_to(m_route)
+                #         folium.GeoJson(geometry, style_function=lambda x: {'color': 'green'}).add_to(m_route)
+                #         st_folium(m_route, width=700)
+                #         if distance and duration:
+                #             st.write(f"**Distance:** {distance/1000:.2f} km | **Durée:** {duration/60:.1f} min")
+                #     else:
+                #         st.info("Aucun itinéraire trouvé.")
+                #     if st.button("Retour aux visualisations"):
+                #         st.session_state.go_to_itinerary = False
+                #         st.rerun()
+                # else:
+                if True:
                     m = folium.Map(
-                        location=(st.session_state.location.latitude, st.session_state.location.longitude)
-                        if st.session_state.location else DEFAULT_LOCATION,
+                        location=(st.session_state["df"]["location.latitude"].mean(),
+                                  st.session_state["df"]["location.longitude"].mean()),
                         zoom_start=14
                     )
                     if st.session_state.location:
