@@ -36,22 +36,25 @@ def main1():
         
         # Formulaire de recherche
         with st.form("search_form"):
-            query = st.text_input("Rechercher des restaurants")
-            if st.form_submit_button("🔍 Lancer la recherche"):
+            query = st.text_input("Rechercher des restaurants", value=st.session_state.get('search_user', ''))
+
+            # Créer le bouton de soumission
+            submit_button = st.form_submit_button("🔍 Lancer la recherche")
+
+            # Si le bouton est cliqué ou si query n'est pas vide  
+            if query:
                 with st.spinner("Recherche en cours..."):
                     df = find_restaurants(query, st.session_state.location)
                     if df is not None and not df.empty:
-                        st.session_state.df = df
+                        st.session_state.df = df  
                         st.session_state.restaurants = [
                             r for r in [create_restaurant(row) for _, row in df.iterrows()] 
-                            if r is not None
-                        ]
+                            if r is not None ]
                         st.session_state.search_history.append(time.time())
                         st.success(f"{len(st.session_state.restaurants)} résultats trouvés!")
                     else:
                         st.session_state.restaurants = []
                         st.warning("Aucun résultat trouvé")
-                        
         
 
         if st.session_state.restaurants:
