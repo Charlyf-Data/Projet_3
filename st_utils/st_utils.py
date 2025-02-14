@@ -86,9 +86,5 @@ def creer_compte():
         else:
             st.error("❌ Nom d'utilisateur déjà pris ou erreur lors de l'inscription.")
 
-def page_clement():   
-    if st.button("direction le bonheur" , key="page_clement"):
-        st.session_state["etape"] = 3 
-        st.rerun()
 
         

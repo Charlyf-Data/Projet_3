@@ -41,11 +41,6 @@ class LocationService:
         if st.session_state.location:
             loc = st.session_state.location
             st.success("✅ Position détectée!")
-            cols = st.columns(2)
-            cols[0].write(f"**Latitude:** {loc.latitude:.6f}°")
-            cols[0].write(f"**Longitude:** {loc.longitude:.6f}°")
-            cols[1].write(f"**Précision:** ±{loc.accuracy:.0f}m" if loc.accuracy else "")
-            cols[1].write(f"**Dernière mise à jour:** {time.strftime('%H:%M:%S', time.localtime(loc.timestamp))}")
 
 class RestaurantService:
     def __init__(self):
