@@ -12,7 +12,7 @@ def main():
     if st.session_state["etape"] == 1:
         login.login_page() 
     elif st.session_state["etape"] == 2:
-         main_app()
+        main_app()
     elif st.session_state["etape"] == 3:
         st.set_page_config(layout="wide")
         main_Clement.main1()

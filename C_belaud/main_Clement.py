@@ -1,4 +1,3 @@
-# main.py
 import streamlit as st
 import time
 from datetime import datetime
@@ -14,7 +13,7 @@ from sqlmanager import Sql_manager
 from C_belaud.config import DEFAULT_LOCATION, COLOR_SCHEME
 from C_belaud.services import LocationService, RestaurantService
 from C_belaud.ui import RestaurantUI
-from C_belaud.api_utils import find_restaurants, create_restaurant, get_route, generate_wordcloud
+from C_belaud.api_utils import find_restaurants, create_restaurant, generate_wordcloud
 from init_co.initialisation import reset_state
 
 sql = Sql_manager()
@@ -35,7 +34,7 @@ def clean_text_spacy(text):
     return " ".join(tokens)
 
 # Utilisation de la colormap "Reds" pour tous les graphiques Plotly
-PLOTLY_COLOR_SCHEME = "Reds"
+PLOTLY_COLOR_SCHEME = "Blues"
 
 def main1():
     loc_service = LocationService()
@@ -43,7 +42,7 @@ def main1():
 
     # ------------------------- Section Recherche -------------------------
     if tab == "🔍 Recherche":
-        st.title(f"🔍 Recherche conseillée par POLO : {st.session_state.search_user}")
+        st.title(f"🔍 Votre demande à Polo : {st.session_state.search_user}")
         if st.button("Retourner voir Polo"):
             reset_state()
             st.session_state.etape = 2
@@ -56,14 +55,14 @@ def main1():
                     st.session_state.df = df  
                     st.session_state.restaurants = [
                         r for r in [create_restaurant(row) for _, row in df.iterrows()] 
-                        if r is not None ]
+                        if r is not None 
+                    ]
                     st.session_state.search_history.append(time.time())
                     st.success(f"{len(st.session_state.restaurants)} résultats trouvés!")
                 else:
                     st.session_state.restaurants = []
                     st.warning("Aucun résultat trouvé")
         
-                        
         if st.session_state.restaurants:
             cols = st.columns([1, 2])
             with cols[0]:
@@ -71,12 +70,16 @@ def main1():
                 types_valides = {r.primary_type for r in st.session_state.restaurants if r.primary_type}
                 selected_type = st.selectbox("Filtrer par type", ["Tous"] + sorted(types_valides))
                 sort_option = st.selectbox("Trier par", ["Note décroissante", "Note croissante", "Nombre d'avis"])
-                filtered = [r for r in st.session_state.restaurants if selected_type == "Tous" or r.primary_type == selected_type]
+                filtered = [
+                    r for r in st.session_state.restaurants 
+                    if selected_type == "Tous" or r.primary_type == selected_type
+                ]
                 reverse = (sort_option == "Note décroissante")
                 if "Note" in sort_option:
                     filtered.sort(key=lambda x: x.rating or 0, reverse=reverse)
                 else:
                     filtered.sort(key=lambda x: x.user_ratings_total or 0, reverse=True)
+                
                 for restaurant in filtered:
                     with st.expander(f"🏠 {restaurant.name}"):
                         st.write(f"⭐ **Note Google Maps:** {restaurant.rating}/5" if restaurant.rating else "⭐ Aucune note Google Maps")
@@ -85,40 +88,32 @@ def main1():
                         if restaurant.latest_review:
                             st.write(f"💬 Dernier avis: _{restaurant.latest_review}_")
                         
-                        col_actions = st.columns(2)
-                        with col_actions[0]:
-                            if st.button("🗺️ Itinéraire", key=f"route_{restaurant.place_id}"):
-                                st.session_state.selected_route = restaurant
-                                st.session_state.go_to_itinerary = True
-                                st.rerun()
-                        with col_actions[1]:
-                            if st.button("❤️ Ajouter aux favoris", key=f"fav_{restaurant.place_id}"):
-                                if restaurant not in st.session_state.favorites:
-                                    st.session_state.favorites.append(restaurant)
-                                    st.success("Ajouté aux favoris!")
-                                    st.session_state.user_reviews = []
-                                lieu = pd.Series({
-                                    "country": "France",
-                                    "city": "Toulouse",
-                                    "displayName.text": restaurant.name,
-                                    "formattedAddress": restaurant.address,
-                                    "location.longitude": restaurant.longitude,
-                                    "location.latitude": restaurant.latitude,
-                                    "primaryType": restaurant.primary_type
-                                })
-                                sql.insert_lieu(lieu)
-                                id_lieux = sql.find_place(restaurant.address)
-                                test_requetes = pd.Series({
-                                    "id_user_con": "6",
-                                    "id_user_con": int(st.session_state["id_user_con"]),
-                                    "id_lieux": int(id_lieux[0]),
-                                    "ville": "Toulouse",
-                                    "sujet": "test", #str(st.session_state["history"]),
-                                    "date_requete": datetime.now()
-                                })
-                                    
-                                sql.insert_query(test_requetes)
-                        
+                        # Bouton pour ajouter aux favoris
+                        if st.button("❤️ Ajouter aux favoris", key=f"fav_{restaurant.place_id}"):
+                            if restaurant not in st.session_state.favorites:
+                                st.session_state.favorites.append(restaurant)
+                                st.success("Ajouté aux favoris!")
+                                st.session_state.user_reviews = []
+                            lieu = pd.Series({
+                                "country": "France",
+                                "city": "Toulouse",
+                                "displayName.text": restaurant.name,
+                                "formattedAddress": restaurant.address,
+                                "location.longitude": restaurant.longitude,
+                                "location.latitude": restaurant.latitude,
+                                "primaryType": restaurant.primary_type
+                            })
+                            sql.insert_lieu(lieu)
+                            id_lieux = sql.find_place(restaurant.address)
+                            test_requetes = pd.Series({
+                                "id_user_con": "6",
+                                "id_user_con": int(st.session_state["id_user_con"]),
+                                "id_lieux": int(id_lieux[0]),
+                                "ville": "Toulouse",
+                                "sujet": "test",  #str(st.session_state["history"]),
+                                "date_requete": datetime.now()
+                            })
+                            sql.insert_query(test_requetes)
                         
                         st.markdown("---")
                         col_slider, col_text = st.columns([1, 3])
@@ -133,9 +128,8 @@ def main1():
                                     "rating": rating_value,
                                     "date": datetime.now().strftime("%d/%m/%Y %H:%M")
                                 })
-                                print(user_review)
                                 st.success("Votre avis a été ajouté !")
-                                 # Insertion dans la base SQL
+                                # Insertion dans la base SQL
                                 lieu = pd.Series({
                                     "country": "France",
                                     "city": "Toulouse",
@@ -145,236 +139,185 @@ def main1():
                                     "location.latitude": restaurant.latitude,
                                     "primaryType": restaurant.primary_type
                                 })
-                                
                                 sql.insert_lieu(lieu)
-
                                 id_lieux = sql.find_place(restaurant.address)
-
                                 avis = pd.Series({
-                                    "id_user_con": '6',#int(st.session_state["id_user_con"]),
-                                    "id_lieux": '10',#int(id_lieux[0]),
+                                    "id_user_con": '6',
+                                    "id_lieux": '10',
                                     "note": 4.5,
                                     "avis": user_review,
                                     "date_requete": datetime.now()
                                 })
                                 sql.insert_avis(avis)
-                                
-                        
-                        
-                        
-                        
                         
                         if restaurant.place_id in st.session_state.user_reviews:
                             st.markdown("**Avis des utilisateurs :**")
                             for ur in st.session_state.user_reviews[restaurant.place_id]:
                                 st.write(ur)
-     
+            
             with cols[1]:
-                # if st.session_state.get("go_to_itinerary", False) and st.session_state.selected_route:
-                #     st.subheader("Itinéraire détaillé")
-                #     # Vérifier si selected_route est une liste et extraire le premier élément si nécessaire
-                #     selected = st.session_state.selected_route[0] if isinstance(st.session_state.selected_route, list) else st.session_state.selected_route
-                #     user_loc = (st.session_state.location.latitude, st.session_state.location.longitude)
-                #     resto_loc = (selected.latitude, selected.longitude)
-                #     geometry, distance, duration = get_route(user_loc, resto_loc)
-                #     if geometry:
-                #         m_route = folium.Map(
-                #             location=[(user_loc[0] + resto_loc[0]) / 2, (user_loc[1] + resto_loc[1]) / 2],
-                #             zoom_start=13
-                #         )
-                #         folium.Marker(user_loc, popup="Vous", icon=folium.Icon(color="blue")).add_to(m_route)
-                #         folium.Marker(resto_loc, popup=selected.name, icon=folium.Icon(color="red")).add_to(m_route)
-                #         folium.GeoJson(geometry, style_function=lambda x: {'color': 'green'}).add_to(m_route)
-                #         st_folium(m_route, width=700)
-                #         if distance and duration:
-                #             st.write(f"**Distance:** {distance/1000:.2f} km | **Durée:** {duration/60:.1f} min")
-                #     else:
-                #         st.info("Aucun itinéraire trouvé.")
-                #     if st.button("Retour aux visualisations"):
-                #         st.session_state.go_to_itinerary = False
-                #         st.rerun()
-                # else:
-                if True:
-                    m = folium.Map(
-                        location=(st.session_state["df"]["location.latitude"].mean(),
-                                  st.session_state["df"]["location.longitude"].mean()),
-                        zoom_start=14
-                    )
-                    if st.session_state.location:
-                        folium.Marker(
-                            [st.session_state.location.latitude, st.session_state.location.longitude],
-                            tooltip="Votre position",
-                            icon=folium.Icon(color="red", icon="user")
-                        ).add_to(m)
-                    cluster = MarkerCluster().add_to(m)
-                    for r in filtered:
-                        folium.Marker(
-                            [r.latitude, r.longitude],
-                            popup=f"<b>{r.name}</b><br>Note: {r.rating}/5",
-                            icon=folium.Icon(color="blue", icon="glyphicon glyphicon-cutlery")
-                        ).add_to(cluster)
-                    st_folium(m, width=700)
+                m = folium.Map(
+                    location=(st.session_state["df"]["location.latitude"].mean(),
+                              st.session_state["df"]["location.longitude"].mean()),
+                    zoom_start=14
+                )
+                if st.session_state.location:
+                    folium.Marker(
+                        [st.session_state.location.latitude, st.session_state.location.longitude],
+                        tooltip="Votre position",
+                        icon=folium.Icon(color="red", icon="user")
+                    ).add_to(m)
+                cluster = MarkerCluster().add_to(m)
+                for r in filtered:
+                    folium.Marker(
+                        [r.latitude, r.longitude],
+                        popup=f"<b>{r.name}</b><br>Note: {r.rating}/5",
+                        icon=folium.Icon(color="blue", icon="glyphicon glyphicon-cutlery")
+                    ).add_to(cluster)
+                st_folium(m, width=700)
+                
+                tabs_right = st.tabs(["Visualisations"])
+                with tabs_right[0]:
+                    st.subheader("📈 Statistiques")
+                    cols_stats = st.columns(3)
+                    if not st.session_state.df.empty:
+                        cols_stats[0].metric("Note moyenne Google Maps", f"{st.session_state.df['rating'].mean():.1f}/5")
+                        cols_stats[1].metric("Total établissements", len(st.session_state.df))
+                        cols_stats[2].metric("Avis total", st.session_state.df['userRatingCount'].sum())
                     
-                    tabs_right = st.tabs(["Visualisations", "Itinéraire"])
-                    with tabs_right[0]:
-                        st.subheader("📈 Statistiques")
-                        cols_stats = st.columns(3)
-                        if not st.session_state.df.empty:
-                            cols_stats[0].metric("Note moyenne Google Maps", f"{st.session_state.df['rating'].mean():.1f}/5")
-                            cols_stats[1].metric("Total établissements", len(st.session_state.df))
-                            cols_stats[2].metric("Avis total", st.session_state.df['userRatingCount'].sum())
-                        
-                        tabs_viz = st.tabs([
-                            "Distribution des notes Google Maps", 
-                            "Répartition par type", 
-                            "Notes vs Avis", 
-                            "WordCloud Avis par Restaurants",
-                            "WordCloud Avis Global"
-                        ])
-                        
-                        with tabs_viz[0]:
-                            df_sorted = st.session_state.df.sort_values(by="rating", ascending=True)
-                            fig_hist = px.bar(
-                                df_sorted, 
-                                y='rating',
-                                title='Distribution des notes',
-                                color='rating',
-                                color_continuous_scale="Reds",
-                                orientation='h'
-                            )
-                            fig_hist.update_layout(
-                                plot_bgcolor="white",
-                                paper_bgcolor="white",
-                                font=dict(color="black"),
-                                xaxis_title="Nombre d'établissements",
-                                yaxis_title="Note moyenne"
-                            )
-                            st.plotly_chart(fig_hist, use_container_width=True)
-                        
-                        with tabs_viz[1]:
-                            if 'primaryType' in st.session_state.df.columns:
-                                type_counts = st.session_state.df['primaryType'].value_counts().reset_index()
-                                type_counts.columns = ['Type', 'Count']
-                                type_counts = type_counts.sort_values(by="Count", ascending=True)
-                                fig_pie = px.pie(
-                                    type_counts, 
-                                    values="Count", 
-                                    names="Type",
-                                    title="Répartition par type de restaurant",
-                                    color="Type",
-                                    color_discrete_sequence=px.colors.sequential.Reds
-                                )
-                                fig_pie.update_layout(
-                                    plot_bgcolor="white",
-                                    paper_bgcolor="white",
-                                    font=dict(color="black")
-                                )
-                                st.plotly_chart(fig_pie, use_container_width=True)
-                        
-                        with tabs_viz[2]:
-                            fig_scatter = px.scatter(
-                                st.session_state.df, x='rating', y='userRatingCount',
-                                color='displayName.text', title="Relation entre note et nombre d'avis",
-                                size='rating',
-                                labels={'rating': "Note", 'userRatingCount': "Nombre d'avis"},
+                    tabs_viz = st.tabs([
+                        "Distribution des notes Google Maps", 
+                        "Répartition par type", 
+                        "Notes vs Avis", 
+                        "WordCloud Avis par Restaurants",
+                        "WordCloud Avis Global"
+                    ])
+                    
+                    with tabs_viz[0]:
+                        df_sorted = st.session_state.df.sort_values(by="rating", ascending=True)
+                        fig_hist = px.bar(
+                            df_sorted, 
+                            y='rating',
+                            title='Distribution des notes',
+                            color='rating',
+                            color_continuous_scale=["#8B0000", "#E34234", "#FFA07A"]
+,
+                            orientation='h'
+                        )
+                        fig_hist.update_layout(
+                            plot_bgcolor="white",
+                            paper_bgcolor="white",
+                            font=dict(color="black"),
+                            xaxis_title="Nombre d'établissements",
+                            yaxis_title="Note moyenne"
+                        )
+                        st.plotly_chart(fig_hist, use_container_width=True)
+                    
+                    with tabs_viz[1]:
+                        if 'primaryType' in st.session_state.df.columns:
+                            type_counts = st.session_state.df['primaryType'].value_counts().reset_index()
+                            type_counts.columns = ['Type', 'Count']
+                            type_counts = type_counts.sort_values(by="Count", ascending=True)
+                            fig_pie = px.pie(
+                                type_counts, 
+                                values="Count", 
+                                names="Type",
+                                title="Répartition par type de restaurant",
+                                color="Type",
                                 color_discrete_sequence=px.colors.sequential.Reds
                             )
-                            fig_scatter.update_layout(
+                            fig_pie.update_layout(
                                 plot_bgcolor="white",
                                 paper_bgcolor="white",
                                 font=dict(color="black")
                             )
-                            st.plotly_chart(fig_scatter, use_container_width=True)
-                        
-                        with tabs_viz[3]:
-                            restaurants_avec_avis = [r for r in st.session_state.restaurants 
-                                                     if (r.all_reviews and len(r.all_reviews) > 0) or 
-                                                        (r.place_id in st.session_state.user_reviews and st.session_state.user_reviews[r.place_id])]
-                            if restaurants_avec_avis:
-                                restaurant_names = [r.name for r in restaurants_avec_avis]
-                                selected_restaurant_name = st.selectbox("Choisissez un restaurant pour afficher le WordCloud de ses avis", restaurant_names, key="wc_select")
-                                selected_restaurant = next((r for r in restaurants_avec_avis if r.name == selected_restaurant_name), None)
-                                if selected_restaurant:
-                                    all_reviews = list(selected_restaurant.all_reviews) if selected_restaurant.all_reviews else []
-                                    if selected_restaurant.place_id in st.session_state.user_reviews:
-                                        all_reviews.extend(st.session_state.user_reviews[selected_restaurant.place_id])
-                                    if all_reviews:
-                                        all_reviews = [clean_text_spacy(review) for review in all_reviews]
-                                        all_reviews_text = " ".join(all_reviews)
-                                        wordcloud = WordCloud(
-                                            width=800, height=400,
-                                            background_color="white",
-                                            colormap="Reds",
-                                            max_words=200,
-                                            contour_color="black",
-                                            contour_width=2,
-                                            stopwords=all_stopwords
-                                        ).generate(all_reviews_text)
-                                        fig_wc, ax_wc = plt.subplots(figsize=(10, 5))
-                                        ax_wc.imshow(wordcloud, interpolation="bilinear")
-                                        ax_wc.axis("off")
-                                        ax_wc.set_title(f"WordCloud des Avis - {selected_restaurant_name}", fontsize=14, color="black")
-                                        fig_wc.patch.set_facecolor("white")
-                                        st.pyplot(fig_wc)
-                                    else:
-                                        st.info("Aucun avis disponible pour ce restaurant.")
-                            else:
-                                st.info("Aucun avis disponible pour générer un WordCloud.")
-                        
-                        with tabs_viz[4]:
-                            all_reviews_global = []
-                            for r in st.session_state.restaurants:
-                                if r.all_reviews and len(r.all_reviews) > 0:
-                                    all_reviews_global.extend([clean_text_spacy(review) for review in r.all_reviews])
-                                if r.place_id in st.session_state.user_reviews:
-                                    all_reviews_global.extend([clean_text_spacy(review) for review in st.session_state.user_reviews[r.place_id]])
-                            if all_reviews_global:
-                                all_reviews_text_global = " ".join(all_reviews_global)
-                                wordcloud_global = WordCloud(
-                                    width=800, height=400,
-                                    background_color="white",
-                                    colormap="Reds",
-                                    max_words=200,
-                                    contour_color="black",
-                                    contour_width=2,
-                                    stopwords=all_stopwords
-                                ).generate(all_reviews_text_global)
-                                fig_global, ax_global = plt.subplots(figsize=(10, 5))
-                                ax_global.imshow(wordcloud_global, interpolation="bilinear")
-                                ax_global.axis("off")
-                                ax_global.set_title("WordCloud des Avis Global", fontsize=14, color="black")
-                                fig_global.patch.set_facecolor("white")
-                                st.pyplot(fig_global)
-                            else:
-                                st.info("Aucun avis global disponible pour générer un WordCloud.")
+                            st.plotly_chart(fig_pie, use_container_width=True)
                     
-                        with tabs_right[1]:
-                            st.subheader("Itinéraire détaillé")
-                            user_loc = (st.session_state.location.latitude, st.session_state.location.longitude)
-                            # Vérifier si selected_route est une liste, et en extraire le premier élément si nécessaire
-                            if isinstance(st.session_state.selected_route, list) and st.session_state.selected_route:
-                                selected = st.session_state.selected_route[0]
-                            else:
-                                selected = st.session_state.selected_route
-                            resto_loc = (selected.latitude, selected.longitude)
-                            geometry, distance, duration = get_route(user_loc, resto_loc)
-                            if geometry:
-                                m_route = folium.Map(
-                                    location=[(user_loc[0] + resto_loc[0]) / 2, (user_loc[1] + resto_loc[1]) / 2],
-                                    zoom_start=13
+                    with tabs_viz[2]:
+                        fig_scatter = px.scatter(
+                            st.session_state.df, x='rating', y='userRatingCount',
+                            color='displayName.text', title="Relation entre note et nombre d'avis",
+                            size='rating',
+                            labels={'rating': "Note", 'userRatingCount': "Nombre d'avis"},
+                            color_discrete_sequence=px.colors.sequential.Reds
+                        )
+                        fig_scatter.update_layout(
+                            plot_bgcolor="white",
+                            paper_bgcolor="white",
+                            font=dict(color="black")
+                        )
+                        st.plotly_chart(fig_scatter, use_container_width=True)
+                    
+                    with tabs_viz[3]:
+                        restaurants_avec_avis = [r for r in st.session_state.restaurants 
+                                                 if (r.all_reviews and len(r.all_reviews) > 0) or 
+                                                    (r.place_id in st.session_state.user_reviews and st.session_state.user_reviews[r.place_id])]
+                        if restaurants_avec_avis:
+                            restaurant_names = [r.name for r in restaurants_avec_avis]
+                            selected_restaurant_name = st.selectbox(
+                                "Choisissez un restaurant pour afficher le WordCloud de ses avis", 
+                                restaurant_names, key="wc_select"
+                            )
+                            selected_restaurant = next(
+                                (r for r in restaurants_avec_avis if r.name == selected_restaurant_name), 
+                                None
+                            )
+                            if selected_restaurant:
+                                all_reviews = list(selected_restaurant.all_reviews) if selected_restaurant.all_reviews else []
+                                if selected_restaurant.place_id in st.session_state.user_reviews:
+                                    all_reviews.extend(st.session_state.user_reviews[selected_restaurant.place_id])
+                                if all_reviews:
+                                    all_reviews = [clean_text_spacy(review) for review in all_reviews]
+                                    all_reviews_text = " ".join(all_reviews)
+                                    wordcloud = WordCloud(
+                                        width=800, height=400,
+                                        background_color="white",
+                                        colormap="Reds",
+                                        max_words=200,
+                                        contour_color="black",
+                                        contour_width=2,
+                                        stopwords=all_stopwords
+                                    ).generate(all_reviews_text)
+                                    fig_wc, ax_wc = plt.subplots(figsize=(10, 5))
+                                    ax_wc.imshow(wordcloud, interpolation="bilinear")
+                                    ax_wc.axis("off")
+                                    ax_wc.set_title(f"WordCloud des Avis - {selected_restaurant_name}", fontsize=14, color="black")
+                                    fig_wc.patch.set_facecolor("white")
+                                    st.pyplot(fig_wc)
+                                else:
+                                    st.info("Aucun avis disponible pour ce restaurant.")
+                        else:
+                            st.info("Aucun avis disponible pour générer un WordCloud.")
+                    
+                    with tabs_viz[4]:
+                        all_reviews_global = []
+                        for r in st.session_state.restaurants:
+                            if r.all_reviews and len(r.all_reviews) > 0:
+                                all_reviews_global.extend([clean_text_spacy(review) for review in r.all_reviews])
+                            if r.place_id in st.session_state.user_reviews:
+                                all_reviews_global.extend(
+                                    [clean_text_spacy(review) for review in st.session_state.user_reviews[r.place_id]]
                                 )
-                                folium.Marker(user_loc, popup="Vous", icon=folium.Icon(color="blue")).add_to(m_route)
-                                folium.Marker(resto_loc, popup=selected.name, icon=folium.Icon(color="red")).add_to(m_route)
-                                folium.GeoJson(geometry, style_function=lambda x: {'color': 'green'}).add_to(m_route)
-                                st_folium(m_route, width=700)
-                                if distance and duration:
-                                    st.write(f"**Distance:** {distance/1000:.2f} km | **Durée:** {duration/60:.1f} min")
-                            else:
-                                st.info("Aucun itinéraire trouvé.")
-                    
-            # Fin des onglets Visualisations
-        # Fin de la section Recherche
-
+                        if all_reviews_global:
+                            all_reviews_text_global = " ".join(all_reviews_global)
+                            wordcloud_global = WordCloud(
+                                width=800, height=400,
+                                background_color="white",
+                                colormap="Reds",
+                                max_words=200,
+                                contour_color="black",
+                                contour_width=2,
+                                stopwords=all_stopwords
+                            ).generate(all_reviews_text_global)
+                            fig_global, ax_global = plt.subplots(figsize=(10, 5))
+                            ax_global.imshow(wordcloud_global, interpolation="bilinear")
+                            ax_global.axis("off")
+                            ax_global.set_title("WordCloud des Avis Global", fontsize=14, color="black")
+                            fig_global.patch.set_facecolor("white")
+                            st.pyplot(fig_global)
+                        else:
+                            st.info("Aucun avis global disponible pour générer un WordCloud.")
+    
     # ------------------------- Section Profil -------------------------
     elif tab == "👤 Profil":
         st.title("👤 Votre Profil")
@@ -414,10 +357,17 @@ def main1():
                     df_reviews = pd.DataFrame(st.session_state.reviews)
                     if not df_reviews.empty and "rating" in df_reviews.columns:
                         df_reviews["rating"] = pd.to_numeric(df_reviews["rating"], errors='coerce').fillna(0)
-                    fig_hist = px.histogram(df_reviews, x="rating", nbins=10, title="Distribution des Notes",
-                                            color_discrete_sequence=["red"])
-                    fig_hist.update_layout(plot_bgcolor="white", paper_bgcolor="white",
-                                           font=dict(color="black"), xaxis_title="Note", yaxis_title="Nombre d'avis")
+                    fig_hist = px.histogram(
+                        df_reviews, x="rating", nbins=10, title="Distribution des Notes",
+                        color_discrete_sequence=["red"]
+                    )
+                    fig_hist.update_layout(
+                        plot_bgcolor="white",
+                        paper_bgcolor="white",
+                        font=dict(color="black"),
+                        xaxis_title="Note",
+                        yaxis_title="Nombre d'avis"
+                    )
                     st.plotly_chart(fig_hist, use_container_width=True)
                 else:
                     st.info("Pas d'avis pour afficher la distribution.")
@@ -425,11 +375,15 @@ def main1():
                 st.subheader("Word Cloud de Vos Avis")
                 if st.session_state.reviews:
                     df_reviews = pd.DataFrame(st.session_state.reviews)
-                    reviews_text = " ".join([clean_text_spacy(review) for review in df_reviews["review"].astype(str).tolist()])
+                    reviews_text = " ".join(
+                        [clean_text_spacy(review) for review in df_reviews["review"].astype(str).tolist()]
+                    )
                     if reviews_text.strip():
-                        wordcloud = WordCloud(width=800, height=400, background_color="white", colormap="Reds",
-                                              max_words=200, contour_color="black", contour_width=2,
-                                              stopwords=all_stopwords).generate(reviews_text)
+                        wordcloud = WordCloud(
+                            width=800, height=400, background_color="white", colormap="Reds",
+                            max_words=200, contour_color="black", contour_width=2,
+                            stopwords=all_stopwords
+                        ).generate(reviews_text)
                         fig_wc, ax_wc = plt.subplots(figsize=(10, 5))
                         ax_wc.imshow(wordcloud, interpolation="bilinear")
                         ax_wc.axis("off")
@@ -447,11 +401,17 @@ def main1():
                 for fav in st.session_state.favorites:
                     st.markdown(f"- **{fav.name}**")
                 st.markdown("### Carte de vos restaurants favoris")
-                map_center = (st.session_state.location.latitude, st.session_state.location.longitude) if st.session_state.location else DEFAULT_LOCATION
+                map_center = (
+                    st.session_state.location.latitude,
+                    st.session_state.location.longitude
+                ) if st.session_state.location else DEFAULT_LOCATION
                 m_fav = folium.Map(location=map_center, zoom_start=13)
                 for fav in st.session_state.favorites:
-                    folium.Marker([fav.latitude, fav.longitude], popup=fav.name,
-                                  icon=folium.Icon(color='green', icon='star')).add_to(m_fav)
+                    folium.Marker(
+                        [fav.latitude, fav.longitude],
+                        popup=fav.name,
+                        icon=folium.Icon(color='green', icon='star')
+                    ).add_to(m_fav)
                 st_folium(m_fav, width=700)
             else:
                 st.info("Vous n'avez aucun favori pour le moment.")

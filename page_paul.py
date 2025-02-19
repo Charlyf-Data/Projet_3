@@ -90,7 +90,7 @@ def main_app():
                     time.sleep(2)
                     st.rerun()
             st.session_state["message_ready"] = True  # Marquer que le message a été traité
-            st.session_state["temp_input"] = ""  # Utilisation d'une variable temporaire
+            st.session_state["temp_input"] = ""# Utilisation d'une variable temporaire
             st.rerun()
 
     reset = st.sidebar.button("Réinitialiser la discussion")
