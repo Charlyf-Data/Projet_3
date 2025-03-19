@@ -89,7 +89,7 @@ class GooglePlacesAPI:
 
 # Classe Geppetto enrichie
 class Geppetto:
-    def __init__(self, api_key="AIzaSyAlEfI7y4oX5cwkPiz585aaRXxbsAP6p7M", name_model="gemini-1.5-flash", temperature=1):
+    def __init__(self, api_key=api_key, name_model="gemini-1.5-flash", temperature=1):
         self.api_key = api_key
         self.model = None
         self.name_model = name_model
