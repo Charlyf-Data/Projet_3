@@ -72,7 +72,7 @@ def findV2(query: str) -> Optional[pd.DataFrame]:
 
     headers = {
         "Content-Type": "application/json",
-        "X-Goog-Api-Key": "AIzaSyA7qPLy7k6Gnl50R-dYBxODXm8muIRtKGE",
+        "X-Goog-Api-Key": api_key,
         "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.primaryType"
     }
 
